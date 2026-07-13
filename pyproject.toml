@@ -26,6 +26,12 @@ dependencies = [
     "jcs>=0.2",
 ]
 
+[project.urls]
+Homepage = "https://github.com/Sharathvc23/sm-oversight"
+Spec = "https://github.com/Sharathvc23/sm-oversight/blob/main/SPEC.md"
+Whitepaper = "https://github.com/Sharathvc23/sm-oversight/blob/main/WHITEPAPER.md"
+Changelog = "https://github.com/Sharathvc23/sm-oversight/blob/main/CHANGELOG.md"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
