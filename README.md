@@ -2,9 +2,10 @@
 
 **Human oversight protocol — signed approve/deny/escalate gestures with M-of-N quorum, as an auditable ARP receipt chain**
 
-EU AI Act Article 14 requires human oversight of high-risk AI, but there is no open
-protocol that turns a human's approve/deny/escalate into a **signed, verifiable
-override record**. sm-oversight does. A reviewer's gesture is an ARP receipt; an
+EU AI Act Article 14 requires human oversight capabilities for high-risk AI. One
+mechanism that supports that duty — and that we found no open protocol for — is turning
+a human's approve/deny/escalate into a **signed, verifiable override record**.
+sm-oversight is that mechanism. A reviewer's gesture is an ARP receipt; an
 approval is an *authority grant* for the specific proposed action, so the agent's
 executed receipt references it and ARP's authority chain proves the action was
 human-approved. Panels are supported via M-of-N witness signatures.
@@ -53,6 +54,10 @@ pip install sm-oversight    # requires sm-arp>=0.1
 from sm_arp import Identity, build_action, issue_receipt
 from sm_oversight import build_oversight_approval, add_witness, verify_oversight
 
+P = "did:key:zPrincipal"                                    # the accountable principal
+r1, r2, r3 = (Identity.from_seed(bytes([b]) * 32) for b in (1, 2, 3))   # the review panel
+agent = Identity.from_seed(bytes([9]) * 32)
+
 # 1. agent proposes
 proposal = issue_receipt(agent, principal_did=P,
                          action=build_action(category="purchase", human_summary="buy", outcome="pending"))
@@ -73,6 +78,38 @@ res = verify_oversight(executed, approval, required_m=2, trusted_reviewers={r1.d
 assert res.ok
 ```
 
+> **The quorum gotcha:** building the approval does **not** cast a vote. Quorum counts
+> only distinct trusted DIDs in `evidence.witness_signatures` — the builder's receipt
+> signature is a different field the quorum never reads. That's why `r1` appears in
+> `add_witness` above even though `r1` built the gesture. Forgetting this yields a
+> confusing `quorum` failure at M-1 votes.
+
+The runnable version with real output is
+[`examples/propose_approve_verify.py`](./examples/propose_approve_verify.py)
+(executed 2026-07-13):
+
+```text
+quorum 2-of-3      : True | distinct trusted signers: 2
+verify_oversight   : True | stage: accepted
+```
+
+## Wire shape (what a gesture actually carries)
+
+An oversight gesture is an ordinary ARP receipt with two extras (real serialized
+output from the example above):
+
+```jsonc
+// action.machine_payload.oversight — the envelope
+{"decision": "approved",
+ "reviewers": ["did:key:z6Mkon3…"],          // informational; quorum does NOT read this
+ "reviews_receipt_id": "aa1ec8e4-…"}
+
+// evidence.witness_signatures[i] — one quorum vote (Ed25519 over the JCS-canonical
+// receipt with `signature` + `witness_signatures` removed, so votes never invalidate
+// each other or the issuer signature)
+{"signer_did": "did:key:z6Mkon3…", "signature": "LUuo8tN2…"}
+```
+
 ## Specification
 
 - [`SPEC.md`](./SPEC.md) — normative gesture + quorum + gate (working draft).
@@ -83,7 +120,10 @@ assert res.ok
 | Package | Role |
 | --- | --- |
 | [`sm-arp`](https://github.com/Sharathvc23/sm-arp) | Agency Receipts + authority chain sm-oversight composes |
-| [`sm-rep`](https://github.com/Sharathvc23/sm-rep) | sibling primitive — portable reputation credential |
+| [`sm-dat`](https://github.com/Sharathvc23/sm-dat) | standing, scoped delegation — the *asynchronous* counterpart to this package's per-action approval |
+| [`sm-dissociation-receipt`](https://github.com/Sharathvc23/sm-dissociation-receipt) | downstream consumer: its `[oversight]` extra pins this package (git SHA) and wraps it as `make_oversight_gate` — an M-of-N gate before memory dissociation |
+| [`sm-dissociation-guard`](https://github.com/Sharathvc23/sm-dissociation-guard) | the runtime layer where that gate is enforced at quarantine time |
+| [`sm-parc`](https://pypi.org/project/sm-parc/) | sibling primitive — portable reputation credential |
 
 ## License
 
@@ -91,7 +131,8 @@ assert res.ok
 
 ---
 
-*First published: 2026-06-07 | Last modified: 2026-06-07*
+*First release: 2026-06-07 (private phase — not on PyPI yet; install from a local
+checkout or a full-SHA git pin).*
 
 Addresses EU AI Act Art. 14 human-oversight as an open, signed, auditable protocol
 artifact over ARP.

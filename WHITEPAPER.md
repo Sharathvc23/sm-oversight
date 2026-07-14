@@ -37,7 +37,7 @@ authority for high-stakes actions *already* refuses an un-approved high-stakes a
         │
         ├── sm-oversight : approve = authority_granted gesture (M-of-N witnessed)
         │                  executed action.granted_by → the approval
-        └── sm-rep       : portable reputation credential (sibling primitive)
+        └── sm-parc      : portable reputation credential (sibling primitive)
 ```
 
 ## 5. Open questions

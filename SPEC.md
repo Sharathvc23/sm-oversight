@@ -41,6 +41,10 @@ A gesture is a signed ARP receipt issued by a human reviewer, carrying
 
 `reviews_receipt_id` MUST reference the proposed action receipt under review.
 
+> **Note:** the gesture issuer's own receipt `signature` is NOT a quorum vote. A
+> reviewer who builds the gesture MUST also `add_witness` themselves to be counted —
+> quorum counts only distinct trusted `signer_did`s in `evidence.witness_signatures`.
+
 ## 4. M-of-N quorum
 A panel co-signs the gesture as `evidence.witness_signatures`, a list of
 `{signer_did, signature}`. Each signature is Ed25519 over the gesture's RFC 8785
@@ -67,7 +71,9 @@ A conformant implementation passes the suite under `tests/`. Every guarantee has
 happy-path test and every rejection stage a hostile-path test.
 
 ## 7. Versioning
-SemVer. The gesture shape, quorum rule, and gate ordering are frozen within a major.
+SemVer. The gesture shape, quorum rule, and gate ordering are frozen **within a major**
+once one exists — under 0.x (the current Working Draft) they may still change with the
+spec.
 
 ## 8. References
 - ARP (sm-arp) — receipts + authority chain. RFC 8785 — JCS.
