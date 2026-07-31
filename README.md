@@ -44,9 +44,22 @@ confirms an action was human-approved. Receipts and the authority chain are ARP'
 
 ## Installation
 
+Not published to PyPI yet. Install from a full-SHA git pin:
+
 ```bash
-pip install sm-oversight    # requires sm-arp>=0.1
+pip install "git+https://github.com/Sharathvc23/sm-oversight.git@<full-sha>"
 ```
+
+…or from a local checkout:
+
+```bash
+pip install -e .
+```
+
+`sm-arp` is a normal dependency and is resolved for you. It used to be vendored
+in-tree — that predated `sm-arp` being on PyPI, and shipping our own copy of
+`sm_arp` in the wheel collided with the real distribution over the same import
+path. See [CHANGELOG.md](./CHANGELOG.md).
 
 ## Quick start
 
