@@ -36,3 +36,10 @@ Run `node conformance/verify-booking.mjs` for the independent Node booking vecto
 These deployment mappings identify evidence a system can collect. Applicability, retention, appeals and legal assessment belong to the deployment.
 
 Panel reviewers can append a detached vote using the same command with --cosign approval.json and a fresh --output filename. Owner decisions include deny, escalate and request_changes. Executor construction requires its enrolled Identity. Call dispatch with the operation, request and provider adapter; the adapter receives the checked bytes. Pre-upgrade reserved rows require reconciliation and fresh approval.
+
+### Upgrading the executor database
+
+Stop every legacy worker that can access the shared SQLite file and drain or reconcile its
+reservations before starting the first upgraded worker. Startup migrates the table in place.
+Legacy workers use positional inserts and cannot run against the new schema. Reservations
+created before migration lack a request digest and require operator reconciliation.
