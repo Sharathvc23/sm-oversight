@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sm-oversight"
-version = "0.1.0"
+version = "0.2.0"
 description = "Human oversight protocol — signed approve/deny/escalate gestures with M-of-N quorum, as an auditable ARP receipt chain"
 readme = "README.md"
 license = "MIT"

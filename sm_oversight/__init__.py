@@ -17,7 +17,7 @@ from .gesture import build_oversight_approval, build_oversight_decision
 from .quorum import QuorumResult, add_witness, verify_quorum
 from .verify import OversightResult, verify_oversight
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "APPROVED",
