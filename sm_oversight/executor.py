@@ -29,9 +29,12 @@ class Executor:
             )
 
             columns = {row[1] for row in db.execute("PRAGMA table_info(uses)")}
-            for name in ("operation", "request_digest", "executor"):
-                if name not in columns:
-                    db.execute(f"ALTER TABLE uses ADD COLUMN {name} TEXT")
+            if "operation" not in columns:
+                db.execute("ALTER TABLE uses ADD COLUMN operation TEXT")
+            if "request_digest" not in columns:
+                db.execute("ALTER TABLE uses ADD COLUMN request_digest TEXT")
+            if "executor" not in columns:
+                db.execute("ALTER TABLE uses ADD COLUMN executor TEXT")
 
     def reserve(
         self, proposal: Receipt, decision: Receipt, votes: list[dict[str, str]], outgoing: Receipt
