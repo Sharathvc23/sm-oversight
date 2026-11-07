@@ -1,151 +1,36 @@
-# sm-oversight
+# sm-oversight 0.2
 
-**Human oversight protocol — signed approve/deny/escalate gestures with M-of-N quorum, as an auditable ARP receipt chain**
+Verify an owner's or review panel's approval for an exact agent request before the executor makes an external change. The executor supplies its own policy, clock and outgoing arguments. The example books a simulated flight with separate owner, agent and airline keys.
 
-EU AI Act Article 14 requires human oversight capabilities for high-risk AI. One
-mechanism that supports that duty — and that we found no open protocol for — is turning
-a human's approve/deny/escalate into a **signed, verifiable override record**.
-sm-oversight is that mechanism. A reviewer's gesture is an ARP receipt; an
-approval is an *authority grant* for the specific proposed action, so the agent's
-executed receipt references it and ARP's authority chain proves the action was
-human-approved. Panels are supported via M-of-N witness signatures.
+Install from a pinned Git commit or run `pip install -e '.[dev]'` in a checkout, then `python examples/propose_approve_verify.py`. The example rejects a changed price and a duplicate booking and verifies the signed executor outcome.
 
-The chain it produces:
+## Integration
 
-```
-agent proposes (outcome="pending")  →  humans review (approve/deny/escalate gesture,
-                                        M-of-N co-signed)  →  agent executes
-                                        (granted_by_receipt_id → the approval)
-```
+1. Configure `sm_oversight.exact.Policy` at the resource server. Bind the principal, agent, executor, versioned operation, enrolled reviewer keys, threshold and policy revision. Enroll one key per eligible person. Keep the owner credential outside the agent process in a deployment.
+2. Use `propose` for a pending ARP receipt. Render the material request fields directly from its signed payload. Approve, deny, escalate or request changes with `decide`. Reviewers cast explicit detached votes with `vote`.
+3. Reconstruct the complete request at the final adapter. Use `Executor.reserve` with that request immediately before dispatch. All workers for one executor use the same durable database. Keep a separate database per trust domain and coordinate failover to prevent split-brain execution.
+4. Persist the submitted transition before calling a provider. Send the reservation key as its idempotency key. Reconcile an ambiguous response and record succeeded, failed or unknown. Use `record_outcome` for the signed observation and `inspect_outcome` for audit with trusted evidence of reservation time.
+5. Authenticate owner withdrawals in the host before calling the local store. Withdrawal can win before reservation. An operation already submitted requires provider-specific cancellation.
 
-The one thing sm-oversight owns: the **oversight gesture + quorum + the gate** that
-confirms an action was human-approved. Receipts and the authority chain are ARP's.
+NANDA Connect can provision an agent listing. Private assistants can use oversight directly. A deployment requiring standing delegation must validate that separately at the final adapter. Request arguments, reviewer activity and provider confirmations belong in access-controlled storage.
 
-## What this package secures (v0.1)
+## Migration
 
-- **Signed gestures.** approve → an `authority_granted` ARP receipt; deny / escalate →
-  `decision_made` receipts. All carry an oversight envelope.
-- **M-of-N quorum.** A panel co-signs via `evidence.witness_signatures`; the gate
-  requires ≥ M valid signatures from distinct trusted reviewers.
-- **Provable human-approval.** `verify_oversight` composes: the executed action
-  references the approval, quorum is met, and ARP's authority chain admits the action
-  (scope, expiry, grantee).
-- **Adversarially tested.** quorum-not-met, untrusted witness, duplicate signer,
-  forged witness signature, deny-cited-as-approval, action-not-referencing-approval,
-  out-of-scope authority.
+0.1 stored mutable witnesses inside the signed receipt and accepted category-level authority. Its issuer signature could be reused as a vote, the gate skipped execution-signature authentication, zero was accepted as a threshold, and repeated use was possible. Version 0.2's legacy `verify_oversight` entry point denies execution. Existing downstream callers must migrate to exact approvals and reservation before enabling privileged writes. `sm_oversight.verify.inspect_legacy` inspects old records for historical category evidence. Never use its result as permission. Obtain fresh signatures for outstanding jobs. See [SPEC.md](SPEC.md) and the [release scope](docs/oversight-v02-release-scope.md).
 
-## What this package does NOT do
+### Separate owner terminal
 
-- **Run the reviewer UI / routing.** sm-oversight records and verifies the gesture;
-  the panel surface (e.g. a decision inspector) is the consumer's emitter.
-- **First-class `oversight_*` ARP categories.** v0.1 rides on existing categories +
-  a `machine_payload` envelope; promoting to dedicated categories is a future additive
-  ARP change.
+Run `python -m sm_oversight.owner proposal.json trusted-policy.json owner.pem > approval.json` on the owner's device. Use an encrypted Ed25519 PKCS#8 PEM and install the expected policy separately from the requesting agent. The command displays the signed material arguments, checks the enrolled signer and requests an interactive decision. Pass only the resulting evidence to the executor. The local demo uses ephemeral identities; the terminal command supports a separately held persistent key.
 
-## Installation
+Run `node conformance/verify-booking.mjs` for the independent Node booking vector. At HTTP boundaries bound the request body before reading and use `sm_oversight.wire.parse_bundle` to reject duplicate fields, unsafe numbers and excessive nesting. Supply a trusted schema and adapter for your operation. Keep evidence bundles private; the signed request contains the material arguments in cleartext.
 
-Not published to PyPI yet. Install from a full-SHA git pin:
+### Evidence profiles
 
-```bash
-pip install "git+https://github.com/Sharathvc23/sm-oversight.git@<full-sha>"
-```
-
-…or from a local checkout:
-
-```bash
-pip install -e .
-```
-
-`sm-arp` is a normal dependency and is resolved for you. It used to be vendored
-in-tree — that predated `sm-arp` being on PyPI, and shipping our own copy of
-`sm_arp` in the wheel collided with the real distribution over the same import
-path. See [CHANGELOG.md](./CHANGELOG.md).
-
-## Quick start
-
-```python
-from sm_arp import Identity, build_action, issue_receipt
-from sm_oversight import build_oversight_approval, add_witness, verify_oversight
-
-P = "did:key:zPrincipal"                                    # the accountable principal
-r1, r2, r3 = (Identity.from_seed(bytes([b]) * 32) for b in (1, 2, 3))   # the review panel
-agent = Identity.from_seed(bytes([9]) * 32)
-
-# 1. agent proposes
-proposal = issue_receipt(agent, principal_did=P,
-                         action=build_action(category="purchase", human_summary="buy", outcome="pending"))
-
-# 2. a 2-of-3 human panel approves (the approval is an authority grant for the action)
-approval = build_oversight_approval(r1, principal_did=P, agent_did=agent.did,
-                                    reviews_receipt_id=proposal["receipt_id"],
-                                    action_category="purchase", grant_expires_at="2099-01-01T00:00:00Z")
-add_witness(approval, r1); add_witness(approval, r2)
-
-# 3. agent executes, citing the approval
-executed = issue_receipt(agent, principal_did=P,
-                         action=build_action(category="purchase", human_summary="buy",
-                                             granted_by_receipt_id=approval["receipt_id"]))
-
-# 4. anyone verifies the action was human-approved with quorum
-res = verify_oversight(executed, approval, required_m=2, trusted_reviewers={r1.did, r2.did, r3.did})
-assert res.ok
-```
-
-> **The quorum gotcha:** building the approval does **not** cast a vote. Quorum counts
-> only distinct trusted DIDs in `evidence.witness_signatures` — the builder's receipt
-> signature is a different field the quorum never reads. That's why `r1` appears in
-> `add_witness` above even though `r1` built the gesture. Forgetting this yields a
-> confusing `quorum` failure at M-1 votes.
-
-The runnable version with real output is
-[`examples/propose_approve_verify.py`](./examples/propose_approve_verify.py)
-(executed 2026-07-13):
-
-```text
-quorum 2-of-3      : True | distinct trusted signers: 2
-verify_oversight   : True | stage: accepted
-```
-
-## Wire shape (what a gesture actually carries)
-
-An oversight gesture is an ordinary ARP receipt with two extras (real serialized
-output from the example above):
-
-```jsonc
-// action.machine_payload.oversight — the envelope
-{"decision": "approved",
- "reviewers": ["did:key:z6Mkon3…"],          // informational; quorum does NOT read this
- "reviews_receipt_id": "aa1ec8e4-…"}
-
-// evidence.witness_signatures[i] — one quorum vote (Ed25519 over the JCS-canonical
-// receipt with `signature` + `witness_signatures` removed, so votes never invalidate
-// each other or the issuer signature)
-{"signer_did": "did:key:z6Mkon3…", "signature": "LUuo8tN2…"}
-```
-
-## Specification
-
-- [`SPEC.md`](./SPEC.md) — normative gesture + quorum + gate (working draft).
-- [`WHITEPAPER.md`](./WHITEPAPER.md) — design rationale.
-
-## Related packages
-
-| Package | Role |
+| Deployment | Evidence to retain or link locally |
 | --- | --- |
-| [`sm-arp`](https://github.com/Sharathvc23/sm-arp) | Agency Receipts + authority chain sm-oversight composes |
-| [`sm-dat`](https://github.com/Sharathvc23/sm-dat) | standing, scoped delegation — the *asynchronous* counterpart to this package's per-action approval |
-| [`sm-dissociation-receipt`](https://github.com/Sharathvc23/sm-dissociation-receipt) | downstream consumer: its `[oversight]` extra pins this package (git SHA) and wraps it as `make_oversight_gate` — an M-of-N gate before memory dissociation |
-| [`sm-dissociation-guard`](https://github.com/Sharathvc23/sm-dissociation-guard) | the runtime layer where that gate is enforced at quarantine time |
-| [`sm-parc`](https://pypi.org/project/sm-parc/) | sibling primitive — portable reputation credential |
+| Singapore agentic checkpoints | Operation boundary, policy revision, displayed request and intervention outcome |
+| US risk management | Enrolled responsibility, threshold, intervention and reconciliation result |
+| EU high-risk AI oversight | Information displayed, available intervention, signed decision and downstream effect |
+| Brazilian automated-decision recourse | Private review request and disposition linked to the original case |
 
-## License
-
-[MIT](./LICENSE)
-
----
-
-*First release: 2026-06-07 (private phase — not on PyPI yet; install from a local
-checkout or a full-SHA git pin).*
-
-Addresses EU AI Act Art. 14 human-oversight as an open, signed, auditable protocol
-artifact over ARP.
+These deployment mappings identify evidence a system can collect. Applicability, retention, appeals and legal assessment belong to the deployment.

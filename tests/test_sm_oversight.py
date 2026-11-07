@@ -17,9 +17,9 @@ from sm_oversight import (
     add_witness,
     build_oversight_approval,
     build_oversight_decision,
-    verify_oversight,
     verify_quorum,
 )
+from sm_oversight.verify import inspect_legacy
 
 
 def _seed(label: str) -> bytes:
@@ -73,8 +73,8 @@ def test_full_chain_2_of_3_approved() -> None:
     proposal = _proposal()
     approval = _approval(proposal, [R1, R2])  # 2 witnesses
     executed = _executed(approval)
-    res = verify_oversight(executed, approval, required_m=2, trusted_reviewers=TRUSTED)
-    assert res.ok and res.stage == "accepted"
+    res = inspect_legacy(executed, approval, required_m=2, trusted_reviewers=TRUSTED)
+    assert res.ok and res.stage == "legacy"
 
 
 # ── quorum ─────────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ def test_quorum_not_met() -> None:
     proposal = _proposal()
     approval = _approval(proposal, [R1])  # only 1 witness, need 2
     executed = _executed(approval)
-    res = verify_oversight(executed, approval, required_m=2, trusted_reviewers=TRUSTED)
+    res = inspect_legacy(executed, approval, required_m=2, trusted_reviewers=TRUSTED)
     assert not res.ok and res.stage == "quorum"
 
 
@@ -92,7 +92,7 @@ def test_untrusted_witness_does_not_count() -> None:
     proposal = _proposal()
     approval = _approval(proposal, [R1, OUTSIDER])  # outsider not in TRUSTED
     executed = _executed(approval)
-    res = verify_oversight(executed, approval, required_m=2, trusted_reviewers=TRUSTED)
+    res = inspect_legacy(executed, approval, required_m=2, trusted_reviewers=TRUSTED)
     assert not res.ok and res.stage == "quorum"  # only 1 trusted
 
 
@@ -100,7 +100,7 @@ def test_duplicate_signer_counts_once() -> None:
     proposal = _proposal()
     approval = _approval(proposal, [R1, R1])  # same reviewer twice
     executed = _executed(approval)
-    res = verify_oversight(executed, approval, required_m=2, trusted_reviewers=TRUSTED)
+    res = inspect_legacy(executed, approval, required_m=2, trusted_reviewers=TRUSTED)
     assert not res.ok and res.stage == "quorum"  # de-duped to 1
 
 
@@ -123,7 +123,7 @@ def test_not_approved_when_denied_gesture() -> None:
     add_witness(denial, R1)
     add_witness(denial, R2)
     executed = _executed(denial)  # agent tries to execute citing a DENIAL
-    res = verify_oversight(executed, denial, required_m=2, trusted_reviewers=TRUSTED)
+    res = inspect_legacy(executed, denial, required_m=2, trusted_reviewers=TRUSTED)
     assert not res.ok and res.stage == "not_approved"
 
 
@@ -136,7 +136,7 @@ def test_action_not_referencing_approval_rejected() -> None:
         principal_did=PRINCIPAL_DID,
         action=build_action(category="purchase", human_summary="rogue"),
     )
-    res = verify_oversight(rogue, approval, required_m=2, trusted_reviewers=TRUSTED)
+    res = inspect_legacy(rogue, approval, required_m=2, trusted_reviewers=TRUSTED)
     assert not res.ok and res.stage == "reviews_mismatch"
 
 
@@ -150,5 +150,5 @@ def test_authority_scope_mismatch_rejected() -> None:
         granted_by_receipt_id=approval["receipt_id"],
     )
     executed = issue_receipt(AGENT, principal_did=PRINCIPAL_DID, action=action)
-    res = verify_oversight(executed, approval, required_m=2, trusted_reviewers=TRUSTED)
+    res = inspect_legacy(executed, approval, required_m=2, trusted_reviewers=TRUSTED)
     assert not res.ok and res.stage == "authority"

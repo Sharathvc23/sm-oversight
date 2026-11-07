@@ -1,3 +1,15 @@
+# Human oversight protocol 0.2
+
+The local policy digest is lowercase SHA-256 over the JCS representation of Policy fields with sorted reviewer DIDs. The signed pending proposal carries the wire version, policy digest and complete JSON request. A completed decision receipt binds the proposal's ARP chain_link, policy digest, decision and expiry. Both receipts bind the principal. The proposal issuer must be the configured agent and the decision issuer an eligible reviewer.
+
+A vote is standard base64 Ed25519 over the ASCII purpose sm-oversight/0.2/vote, a single zero byte, and the JCS object with decision_digest (the full signed decision chain_link) and signer (the reviewer's DID). Votes travel outside both receipts. The verifier requires distinct enrolled keys, a positive threshold, and proposal issuance <= decision issuance <= trusted time < expiry. Only approve admits preflight. The final request must reproduce the committed arguments. Each operation version defines its own material fields and units.
+
+The SQLite reference executor serializes withdrawal and reservation, using the signed proposal digest as its unique key. Approval by another panel member for the same proposal cannot spend it again. Preflight is stateless. A successful reservation supplies the provider idempotency key. A signed executor outcome binds the request digest and both receipt links. Historical verification requires an independently trusted reservation time and policy snapshot.
+
+## Legacy 0.1 wire reference
+
+The following historical specification documents the old format. Its acceptance stages apply only to archived records. The legacy entry point in version 0.2 denies new execution.
+
 # Human Oversight Protocol (sm-oversight) — Working Draft
 
 **Version (wire):** `sm-oversight/0.1`

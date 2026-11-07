@@ -1,0 +1,67 @@
+{
+  "policy": {
+    "principal": "did:key:z6MkkTQQeLks3BnS3hkp1FZr4QW9xi1P9RFac9m6VvTHWzhr",
+    "agent": "did:key:z6MknKhjometdhR1Wq3HGxAUx66NRBfjkVHPZS7XYwNN7nNS",
+    "executor": "did:key:z6MkokfsWpTAExU4HKbSgwnZVcQAsQB7EJmJ1747owNHe592",
+    "operation": "flight.book/1",
+    "reviewers": [
+      "did:key:z6MkkTQQeLks3BnS3hkp1FZr4QW9xi1P9RFac9m6VvTHWzhr"
+    ],
+    "threshold": 1,
+    "revision": "1"
+  },
+  "request": {
+    "fare_minor": 43200,
+    "currency": "USD",
+    "flight": "DEMO-42"
+  },
+  "proposal": {
+    "version": "arp/0.1",
+    "receipt_id": "baa21693-91a5-484a-829c-32aba098a5d5",
+    "issuer_did": "did:key:z6MknKhjometdhR1Wq3HGxAUx66NRBfjkVHPZS7XYwNN7nNS",
+    "principal_did": "did:key:z6MkkTQQeLks3BnS3hkp1FZr4QW9xi1P9RFac9m6VvTHWzhr",
+    "issued_at": "2026-11-07T04:39:12Z",
+    "action": {
+      "category": "other",
+      "human_summary": "Book flight",
+      "outcome": "pending",
+      "machine_payload": {
+        "version": "sm-oversight/0.2",
+        "policy": "6f5aa123500d22fb103e64c2e6f391337807a4d9567eb8ce02a2620224dd7b70",
+        "request": {
+          "fare_minor": 43200,
+          "currency": "USD",
+          "flight": "DEMO-42"
+        }
+      }
+    },
+    "signature": "/7zPnAYhLbYjcqTdhPYUR7dRV/hZMmBZMqmDTujJs7C8SWc1jHUzYVEOBwJ9L8UKd47XtXGp/pEI0ThfANOUBA=="
+  },
+  "decision": {
+    "version": "arp/0.1",
+    "receipt_id": "a5c0af5f-1488-4fc1-808e-388e8c69a856",
+    "issuer_did": "did:key:z6MkkTQQeLks3BnS3hkp1FZr4QW9xi1P9RFac9m6VvTHWzhr",
+    "principal_did": "did:key:z6MkkTQQeLks3BnS3hkp1FZr4QW9xi1P9RFac9m6VvTHWzhr",
+    "issued_at": "2026-11-07T04:39:12Z",
+    "action": {
+      "category": "decision_made",
+      "human_summary": "approve",
+      "outcome": "completed",
+      "machine_payload": {
+        "version": "sm-oversight/0.2",
+        "proposal": "sha256:a49b39687c9c7529d9ff3fd5b0a60756b900cb51efab5f1236451e6b47cdfa41",
+        "policy": "6f5aa123500d22fb103e64c2e6f391337807a4d9567eb8ce02a2620224dd7b70",
+        "decision": "approve",
+        "expires": "2026-11-07T04:49:12.625679+00:00"
+      }
+    },
+    "signature": "8c1Rjv6xTZwxE/ObeVQpJU6fiJdQfuWr3Bji9Me0q9jAr3W1nOIC2SqIuI7uro2PNEnNJFbTCQvHedayBnxzAg=="
+  },
+  "votes": [
+    {
+      "signer": "did:key:z6MkkTQQeLks3BnS3hkp1FZr4QW9xi1P9RFac9m6VvTHWzhr",
+      "signature": "2Ab4du+FZHaHsAkJP5JjpSVzWgKF+QUcq6RQYDNBhrGNck/2D3gXKfAf4Af6uVskmrnY+TVY3oSxZCdmuxsiAw=="
+    }
+  ],
+  "at": "2026-11-07T04:39:12Z"
+}

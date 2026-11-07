@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from sm_arp import verify_authority_chain
+from sm_arp import verify_authority_chain, verify_signature
 
 from .context import APPROVED, OVERSIGHT_KEY
 from .quorum import verify_quorum
@@ -28,7 +28,7 @@ class OversightResult:
         return cls(True, "accepted", "action is human-approved with quorum")
 
 
-def verify_oversight(
+def inspect_legacy(
     action: dict[str, Any],
     approval: dict[str, Any],
     *,
@@ -43,6 +43,8 @@ def verify_oversight(
        reviewers witnessed the approval; 3. ARP's authority chain admits ``action``
        under ``approval`` (scope, expiry, grantee, principal).
     """
+    if not verify_signature(action).ok:
+        return OversightResult(False, "signature", "invalid execution signature")
     osp = approval.get("action", {}).get("machine_payload", {}).get(OVERSIGHT_KEY, {})
     if osp.get("decision") != APPROVED:
         return OversightResult(
@@ -64,7 +66,15 @@ def verify_oversight(
     if not a.ok:
         return OversightResult(False, "authority", a.detail)
 
-    return OversightResult.accepted()
+    return OversightResult(True, "legacy", "legacy category evidence only")
 
 
-__all__ = ["OversightResult", "verify_oversight"]
+def verify_oversight(
+    action: dict[str, Any],
+    approval: dict[str, Any],
+    *,
+    required_m: int,
+    trusted_reviewers: set[str],
+) -> OversightResult:
+    """Legacy execution gates must fail closed. Use exact.preflight and Executor.reserve."""
+    return OversightResult(False, "legacy", "fresh exact-action approval required")

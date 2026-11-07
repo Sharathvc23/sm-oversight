@@ -55,17 +55,21 @@ class QuorumResult:
 
 def verify_quorum(gesture: dict[str, Any], *, m: int, trusted: set[str]) -> QuorumResult:
     """True iff ≥ ``m`` distinct trusted reviewers have valid witness signatures."""
+    if type(m) is not int or not 1 <= m <= len(trusted):
+        return QuorumResult(False, "quorum", "invalid threshold")
     body = _quorum_bytes(gesture)
     seen: set[str] = set()
     valid = 0
     witnesses = gesture.get("evidence", {}).get("witness_signatures", [])
     for w in witnesses:
+        if not isinstance(w, dict):
+            continue
         did = w.get("signer_did")
         if not isinstance(did, str) or did in seen or did not in trusted:
             continue
         try:
             pubkey_from_did(did).verify(base64.b64decode(w["signature"]), body)
-        except (InvalidSignature, ValueError, KeyError):
+        except (InvalidSignature, ValueError, KeyError, TypeError):
             continue
         seen.add(did)
         valid += 1
