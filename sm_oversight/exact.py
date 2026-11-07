@@ -20,6 +20,7 @@ from sm_arp import (
 )
 
 from .verify import OversightResult
+from .wire import validate_value
 
 Receipt = dict[str, Any]
 VERSION = "sm-oversight/0.2"
@@ -46,6 +47,8 @@ class Policy:
             raise ValueError("duplicate reviewer")
         if not all((self.principal, self.agent, self.executor, self.operation, self.revision)):
             raise ValueError("missing policy authority or operation")
+        if {self.agent, self.executor}.intersection(self.reviewers):
+            raise ValueError("reviewers must use keys independent of the agent and executor")
         for reviewer in self.reviewers:
             pubkey_from_did(reviewer)
 
@@ -54,6 +57,7 @@ class Policy:
 
 
 def propose(agent: Identity, policy: Policy, request: Receipt, *, summary: str) -> Receipt:
+    validate_value(request)
     if agent.did != policy.agent:
         raise ValueError("wrong agent")
     return issue_receipt(
@@ -116,6 +120,7 @@ def preflight(
 ) -> OversightResult:
     """Authenticate a bundle against local policy and final request. Reservation is separate."""
     try:
+        validate_value(outgoing)
         for item in (proposal, decision):
             result = verify_receipt(item)
             if not result.ok or item["principal_did"] != policy.principal:

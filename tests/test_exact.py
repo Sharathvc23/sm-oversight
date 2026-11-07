@@ -49,7 +49,7 @@ def test_exact_and_hostile(bundle):
     assert not check(signatures=[{"signer": owner.did, "signature": d["signature"]}, votes[1]])
     assert not check(signatures=votes[:1])
     assert not check(signatures=[votes[0], votes[0]])
-    assert not check(policy=replace(pol, executor=owner.did))
+    assert not check(policy=replace(pol, executor=Identity.generate().did))
     assert not check(at=now + timedelta(hours=1))
     assert not check(prop={})
     assert not check(decision=decide(owner, p, pol, decision="deny", expires=now.isoformat()))
@@ -65,9 +65,9 @@ def test_exact_and_hostile(bundle):
 
 
 def test_reservation_races_and_restart(tmp_path, bundle):
-    _, _, policy, req, p, d, votes = bundle
+    _, identity, policy, req, p, d, votes = bundle
     path = str(tmp_path / "db")
-    runtime = Executor(path, policy)
+    runtime = Executor(path, policy, identity)
 
     def reserve(_):
         return runtime.reserve(p, d, votes, req).ok
@@ -76,8 +76,20 @@ def test_reservation_races_and_restart(tmp_path, bundle):
         assert sum(workers.map(reserve, range(8))) == 1
     key = chain_link(p)
     assert not runtime.withdraw(key)
-    assert runtime.transition(key, "reserved", "submitted")
-    recovered = Executor(path, policy)
+    sent = []
+
+    def send(op, body, token):
+        sent.append((op, body, token))
+
+    assert not runtime.dispatch(key, "cancel/1", req, send)
+    assert not runtime.dispatch(key, policy.operation, {**req, "fare": 1}, send)
+    assert not sent
+    assert runtime.dispatch(key, policy.operation, req, send)
+    assert not runtime.dispatch(key, policy.operation, req, send)
+    assert len(sent) == 1
+    with pytest.raises(ValueError):
+        Executor(path, policy, Identity.generate())
+    recovered = Executor(path, policy, identity)
     assert recovered.lookup(key) == ("submitted", None)
     assert not recovered.reserve(p, d, votes, req).ok
     assert recovered.transition(key, "submitted", "unknown")
@@ -85,7 +97,7 @@ def test_reservation_races_and_restart(tmp_path, bundle):
     assert recovered.lookup(key) == ("succeeded", "confirmation")
     with pytest.raises(ValueError):
         recovered.transition(key, "succeeded", "reserved")
-    fresh = Executor(str(tmp_path / "other"), policy)
+    fresh = Executor(str(tmp_path / "other"), policy, identity)
     assert fresh.withdraw(key)
     assert fresh.reserve(p, d, votes, req).stage == "withdrawn"
 
