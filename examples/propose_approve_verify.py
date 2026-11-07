@@ -25,14 +25,15 @@ expires = (datetime.now(UTC) + timedelta(minutes=5)).isoformat()
 decision = decide(owner, proposal, policy, decision="approve", expires=expires)
 votes = [vote(owner, decision)]
 with TemporaryDirectory() as tmp:
-    executor = Executor(str(Path(tmp) / "reservations.sqlite"), policy)
+    executor = Executor(str(Path(tmp) / "reservations.sqlite"), policy, airline)
     assert not executor.reserve(proposal, decision, votes, {**request, "total_minor": 44700}).ok
     reservation = executor.reserve(proposal, decision, votes, request)
     assert reservation.ok
     reserved_at = executor.reservation_time(reservation.detail)
     assert reserved_at is not None
     assert not executor.reserve(proposal, decision, votes, request).ok
-    assert executor.transition(reservation.detail, "reserved", "submitted")
+    assert executor.dispatch(reservation.detail, policy.operation, request,
+                             lambda op, body, key: print(op, body.decode(), key))
     # Simulated provider confirmation. Use reservation.detail as the provider idempotency key.
     assert executor.transition(reservation.detail, "submitted", "succeeded", "demo-confirmation")
     receipt = record_outcome(

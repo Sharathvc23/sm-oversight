@@ -20,7 +20,7 @@ NANDA Connect can provision an agent listing. Private assistants can use oversig
 
 ### Separate owner terminal
 
-Run `python -m sm_oversight.owner proposal.json trusted-policy.json owner.pem > approval.json` on the owner's device. Use an encrypted Ed25519 PKCS#8 PEM and install the expected policy separately from the requesting agent. The command displays the signed material arguments, checks the enrolled signer and requests an interactive decision. Pass only the resulting evidence to the executor. The local demo uses ephemeral identities; the terminal command supports a separately held persistent key.
+Run `python -m sm_oversight.owner proposal.json trusted-policy.json owner.pem --output approval.json` on the owner's device. Use an encrypted Ed25519 PKCS#8 PEM and install the expected policy separately from the requesting agent. The command displays the signed material arguments, checks the enrolled signer and requests an interactive decision. Pass only the resulting evidence to the executor. The local demo uses ephemeral identities; the terminal command supports a separately held persistent key.
 
 Run `node conformance/verify-booking.mjs` for the independent Node booking vector. At HTTP boundaries bound the request body before reading and use `sm_oversight.wire.parse_bundle` to reject duplicate fields, unsafe numbers and excessive nesting. Supply a trusted schema and adapter for your operation. Keep evidence bundles private; the signed request contains the material arguments in cleartext.
 
@@ -34,3 +34,5 @@ Run `node conformance/verify-booking.mjs` for the independent Node booking vecto
 | Brazilian automated-decision recourse | Private review request and disposition linked to the original case |
 
 These deployment mappings identify evidence a system can collect. Applicability, retention, appeals and legal assessment belong to the deployment.
+
+Panel reviewers can append a detached vote using the same command with --cosign approval.json and a fresh --output filename. Owner decisions include deny, escalate and request_changes. Executor construction requires its enrolled Identity. Call dispatch with the operation, request and provider adapter; the adapter receives the checked bytes. Pre-upgrade reserved rows require reconciliation and fresh approval.

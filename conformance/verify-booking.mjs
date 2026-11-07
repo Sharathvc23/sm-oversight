@@ -32,7 +32,7 @@ function check(bundle, policy, outgoing, at) {
   }
   assert.equal(p.issuer_did,policy.agent); assert.ok(policy.reviewers.includes(d.issuer_did));
   const intent=p.action.machine_payload, choice=d.action.machine_payload;
-  assert.equal(p.action.outcome,'pending'); assert.equal(d.action.category,'decision_made');
+  assert.equal(p.action.outcome,'pending'); assert.equal(d.action.category,'decision_made'); assert.equal(d.action.outcome,'completed');
   assert.equal(intent.version,'sm-oversight/0.2'); assert.equal(choice.version,intent.version);
   assert.equal(choice.policy,digest(policy)); assert.equal(intent.policy,choice.policy);
   assert.deepEqual(intent.request,outgoing); assert.equal(choice.decision,'approve');
