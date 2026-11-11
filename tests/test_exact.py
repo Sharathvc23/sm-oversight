@@ -53,7 +53,9 @@ def test_exact_and_hostile(bundle):
     assert not check(at=now + timedelta(hours=1))
     assert not check(prop={})
     assert not check(decision=decide(owner, p, pol, decision="deny", expires=now.isoformat()))
-    assert not verify_oversight(p, d, required_m=0, trusted_reviewers=set()).ok
+    with pytest.warns(DeprecationWarning):
+        legacy = verify_oversight(p, d, required_m=0, trusted_reviewers=set())
+    assert not legacy.ok and legacy.stage == "legacy_denied"
     for threshold in (0, -1, True, 3):
         with pytest.raises(ValueError):
             replace(pol, threshold=threshold)
