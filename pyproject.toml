@@ -24,7 +24,11 @@ dependencies = [
     # install silently wins) while pinning consumers to a frozen v0.1.3.
     # cryptography / base58 / jcs are sm-arp's own transitive deps — declared by
     # it, not restated here.
-    "sm-arp>=0.3.2",
+    # >= 0.4.0: canonical_bytes/chain_link detach evidence.witness_signatures (so a
+    # witness never invalidates the issuer signature), detach_witnesses is public,
+    # vrp reads both witness_did and signer_did, verify_authority_chain
+    # authenticates the grant. quorum.py relies on every one of those.
+    "sm-arp>=0.4.0",
 ]
 
 [project.urls]
